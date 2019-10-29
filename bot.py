@@ -6,6 +6,10 @@ from telegram import Update
 from telegram.ext import CommandHandler, CallbackContext, Updater
 
 
+def user_as_string(user):
+    return f"{user['user_id']} {user['name']} {user['license plate']}\n"
+
+
 def start(update: Update, context: CallbackContext):
     chat_id = update.effective_chat.id
     logger.info(f"> Start chat #{chat_id}")
@@ -25,7 +29,19 @@ def users(update: Update, context: CallbackContext):
     context.bot.send_message(chat_id=chat_id, text=res)
 
 
-def creat_users():
+def status_tomorrow(update: Update, context: CallbackContext):
+    # print final list
+    chat_id = update.effective_chat.id
+    db = client.get_database('parking_db')
+    final_list = db.get_collection('final_list')
+    employees = db.get_collection('employees')
+    res = ""
+    for user in final_list.find():
+        res += user_as_string(employees.find_one({'user_id': user['user_id']}))
+    context.bot.send_message(chat_id=chat_id, text=res)
+
+
+def create_users():
     liwaa_id = 1044776988
     tameer_id = 836471985
     omar_id = 574225603
@@ -44,9 +60,21 @@ def creat_users():
                           upsert=True)
 
 
+def create_final_list():
+    db = client.get_database('parking_db')
+    employees = db.get_collection('employees')
+    final_list = db.get_collection('final_list')
+    final_list.create_index([('user_id', pymongo.ASCENDING)])
+    final_list.delete_many({})
+    for employee in employees.find():
+        final_list.replace_one({'user_id': employee['user_id']}, {'user_id': employee['user_id']},
+                               upsert=True)
+
+
 if __name__ == '__main__':
     client = pymongo.MongoClient()
-    creat_users()
+    create_users()
+    create_final_list()
 
     logging.basicConfig(
         format='[%(levelname)s %(asctime)s %(module)s:%(lineno)d] %(message)s',
@@ -61,6 +89,9 @@ if __name__ == '__main__':
     dispatcher.add_handler(start_handler)
 
     users_handler = CommandHandler('users', users, )
+    dispatcher.add_handler(users_handler)
+
+    users_handler = CommandHandler('status_tmrw', status_tomorrow, )
     dispatcher.add_handler(users_handler)
 
     logger.info("* Start polling...")
