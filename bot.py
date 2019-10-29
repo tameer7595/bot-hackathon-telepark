@@ -18,6 +18,7 @@ def start(update: Update, context: CallbackContext):
     employees = db.get_collection('employees')
     for user in employees.find({'user_id': chat_id}):
         context.bot.send_message(chat_id=chat_id, text=f"💣 Welcome! 💣 {user['name']}")
+    users(update, context)
 
 
 def users(update: Update, context: CallbackContext):
@@ -137,11 +138,11 @@ def creat_users():
                            'points': 0},
                           upsert=True)
     employees.replace_one({'user_id': tameer_id},
-                          {'user_id': tameer_id, 'name': 'tameer', 'license plate': 101, 'rank': 2,
+                          {'user_id': tameer_id, 'name': 'tameer', 'license plate': 101, 'rank': 1,
                            'points': 0},
                           upsert=True)
     employees.replace_one({'user_id': omar_id},
-                          {'user_id': omar_id, 'name': 'omar', 'license plate': 102, 'rank': 2,
+                          {'user_id': omar_id, 'name': 'omar', 'license plate': 102, 'rank': 1,
                            'points': 0},
                           upsert=True)
 
