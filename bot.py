@@ -42,6 +42,20 @@ def creat_users():
     employees.replace_one({'user_id': omar_id},
                           {'user_id': omar_id, 'name': 'omar', 'license plate': 102},
                           upsert=True)
+# TAMEER
+def free_spot(update: Update, context: CallbackContext):
+    chat_id = update.effective_chat.id
+    db = client.get_database('parking_db')
+    employees = db.get_collection('employees')
+    user_info = employees.find_one({'user_id': chat_id })# return a dictionary
+    if user_info['rank'] == 1:
+        seniors_spot = db.get_collection('final_list')
+        seniors_spot.delete_one({'user_id': chat_id})
+    else:
+        juniors_spot = db.get_collection('request_list')
+        juniors_spot.delete_one({'user_id': chat_id})
+    res = "thank you for releasing the spot for another great worker tmrw."
+    context.bot.send_message(chat_id=chat_id, text=res)
 
 
 if __name__ == '__main__':
@@ -62,6 +76,11 @@ if __name__ == '__main__':
 
     users_handler = CommandHandler('users', users, )
     dispatcher.add_handler(users_handler)
+
+    #TAMEER
+    free_handler = CommandHandler('free_tmrw',free_spot, )
+    dispatcher.add_handler(free_handler)
+
 
     logger.info("* Start polling...")
     updater.start_polling()  # Starts polling in a background thread.
