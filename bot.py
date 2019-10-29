@@ -46,7 +46,7 @@ def status_tomorrow(update: Update, context: CallbackContext):
     context.bot.send_message(chat_id=chat_id, text=res)
 
 
-def create_users():
+def creat_users():
     liwaa_id = 1044776988
     tameer_id = 836471985
     omar_id = 574225603
