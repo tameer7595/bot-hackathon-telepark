@@ -2,12 +2,13 @@ import secret_settings
 
 import pymongo
 import logging
-from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
+from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, ParseMode
 from telegram.ext import CommandHandler, CallbackContext, Updater, CallbackQueryHandler
 import time
 from random import randint
+from prettytable import PrettyTable
 
-TOTAL_PARKING_SPOTS = 3
+TOTAL_PARKING_SPOTS = 5
 
 
 def get_bot_description():
@@ -64,11 +65,11 @@ def users(update: Update, context: CallbackContext):
     chat_id = update.effective_chat.id
     db = client.get_database('parking_db')
     employees = db.get_collection('employees')
-    res = 'user_id - name - license plate - rank - points\n'
+    res = []
     for user in employees.find():
-        res += user_as_string(user)
-    context.bot.send_message(chat_id=chat_id, text=res)
-    commands(update,context)
+        res.append(user['name'])
+    context.bot.send_message(chat_id=chat_id, text=', '.join(res), parse_mode=ParseMode.MARKDOWN)
+    commands(update, context)
 
 
 def commands(update: Update, context: CallbackContext):
@@ -92,26 +93,31 @@ def commands(update: Update, context: CallbackContext):
 
 
 def status_tomorrow(update: Update, context: CallbackContext):
-    # print final list
     chat_id = update.effective_chat.id
     db = client.get_database('parking_db')
     final_list = db.get_collection('final_list')
     request_list = db.get_collection('request_list')
     employees = db.get_collection('employees')
-    res = 'user_id - name - license plate - rank - points\n'
+    table = PrettyTable()
+    table.title = 'Parking slots'
+    table.field_names = ["name", "rank", "points"]
     count = 0
     for user in final_list.find():
-        res += user_as_string(employees.find_one({'user_id': user['user_id']}))
+        user = employees.find_one({'user_id': user['user_id']})
+        table.add_row([user['name'], user['rank'], user['points']])
         count += 1
     for waiting_user in request_list.find().sort(
             [('points', pymongo.DESCENDING), ('time', pymongo.ASCENDING)]):
         if count == TOTAL_PARKING_SPOTS:
             break
-        res += user_as_string(employees.find_one({'user_id': waiting_user['user_id']}))
+        user = employees.find_one({'user_id': waiting_user['user_id']})
+        table.add_row([user['name'], user['rank'], user['points']])
         count += 1
-    res += f'empty * {TOTAL_PARKING_SPOTS - count}'
-    context.bot.send_message(chat_id=chat_id, text=res)
-    commands(update,context)
+    for i in range(TOTAL_PARKING_SPOTS - count):
+        table.add_row(['---', '---', '---'])
+    text = f"""```{table.get_string()}```"""
+    context.bot.send_message(chat_id=chat_id, text=text, parse_mode=ParseMode.MARKDOWN)
+    commands(update, context)
 
 
 def book_tmrw(update: Update, context: CallbackContext):
@@ -131,7 +137,7 @@ def book_tmrw(update: Update, context: CallbackContext):
                              upsert=True)
         res = 'we received your request, we will reply to you soon'
     context.bot.send_message(chat_id=chat_id, text=res)
-    commands(update,context)
+    commands(update, context)
 
 
 def free_tmrw(update: Update, context: CallbackContext):
@@ -147,8 +153,7 @@ def free_tmrw(update: Update, context: CallbackContext):
         juniors_spot.delete_one({'user_id': chat_id})
     res = "thank you for releasing the spot for another great worker tmrw."
     context.bot.send_message(chat_id=chat_id, text=res)
-    commands(update,context)
-
+    commands(update, context)
 
 
 def send_plan(update: Update, context: CallbackContext):
@@ -161,14 +166,14 @@ def send_plan(update: Update, context: CallbackContext):
     else:
         context.bot.send_message(chat_id=chat_id,
                                  text="your request has been rejected, no parking for you!")
-    commands(update,context)
+    commands(update, context)
 
 
 # helper methods #
 
 def user_as_string(user):
     return f"{user['user_id']} {user['name']} {user['license plate']} " \
-        f"{user['rank']} {user['points']}\n"
+           f"{user['rank']} {user['points']}\n"
 
 
 def update_final_list():
