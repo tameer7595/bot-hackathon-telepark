@@ -27,7 +27,6 @@ The decision is made according to the staff score💯'''
 
 
 def button(update: Update, context: CallbackContext):
-    chat_id = update.effective_chat.id
     text_command = update.callback_query.data
     if text_command == 'book_tmrw':
         book_tmrw(update, context)
@@ -48,6 +47,7 @@ def basic_button(update: Update, context: CallbackContext):
     elif text_command == 'users':
         users(update, context)
 
+
 def generate_button(data):
     keyboard = [
         [
@@ -65,7 +65,6 @@ def start(update: Update, context: CallbackContext):
     logger.info(f"> Start chat #{chat_id}")
     db = client.get_database('parking_db')
     employees = db.get_collection('employees')
-
     user = employees.find_one({'user_id': chat_id})
     if not user:
         user = {'user_id': chat_id, 'name': update.message.from_user.first_name,
@@ -123,7 +122,6 @@ def status_tomorrow(update: Update, context: CallbackContext):
         count += 1
     res += f'empty * {TOTAL_PARKING_SPOTS - count}'
     context.bot.send_message(chat_id=chat_id, text=res)
-    commands(update,context)
 
 
 def book_tmrw(update: Update, context: CallbackContext):
@@ -142,6 +140,7 @@ def book_tmrw(update: Update, context: CallbackContext):
         requests.replace_one({"user_id": chat_id}, {"user_id": chat_id, "time": time.time()},
                              upsert=True)
         res = 'we received your request, we will reply to you soon'
+    status_tomorrow(update, context)
     context.bot.send_message(chat_id=chat_id, text=res, reply_markup=generate_button('free_spot'))
 
 
