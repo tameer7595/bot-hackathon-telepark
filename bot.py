@@ -39,8 +39,8 @@ def book_tmrw(update: Update, context: CallbackContext):
     db = client.get_database('parking_db')
     requests = db.get_collection('request_list')
     requests.replace_one(
-        {"chat_id": chat_id},
-        {"chat_id": chat_id, "time": time.time()},
+        {"user_id": chat_id},
+        {"user_id": chat_id, "time": time.time()},
         upsert=True
     )
     res = 'we received your request, we will reply to you soon'
