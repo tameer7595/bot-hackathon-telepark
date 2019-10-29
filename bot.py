@@ -2,12 +2,48 @@ import secret_settings
 
 import pymongo
 import logging
-from telegram import Update
-from telegram.ext import CommandHandler, CallbackContext, Updater
+from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
+from telegram.ext import CommandHandler, CallbackContext, Updater, CallbackQueryHandler
 import time
 
 TOTAL_PARKING_SPOTS = 3
 
+
+def get_bot_description():
+    return 'help'
+
+
+def button(update: Update, context: CallbackContext):
+    chat_id = update.effective_chat.id
+    text_command = update.callback_query.data
+    if text_command == 'help':
+        response = get_bot_description()
+        context.bot.send_message(chat_id=chat_id,
+                                 text=response)
+    elif text_command == 'commands':
+        response = 'Here a list of all commands you can do'
+        keyboard = [
+            [InlineKeyboardButton("Book", callback_data='book_tmrw'),
+             InlineKeyboardButton("Free", callback_data='free_spot'),
+             InlineKeyboardButton("Status", callback_data='status_tmrw'),
+             InlineKeyboardButton("Users", callback_data='users'),
+             InlineKeyboardButton("Plan", callback_data='send_plan')
+             ]
+        ]
+        reply_markup = InlineKeyboardMarkup(keyboard)
+        context.bot.send_message(chat_id=chat_id,
+                                 text=response, reply_markup=reply_markup)
+    else:
+        if text_command == 'book_tmrw':
+            book_tmrw(update, context)
+        elif text_command == 'free_spot':
+            free_spot(update, context)
+        elif text_command == 'status_tmrw':
+            status_tomorrow(update, context)
+        elif text_command == 'users':
+            users(update,context)
+        elif text_command == 'send_plan':
+            send_plan(update,context)
 
 # bot commands #
 
@@ -16,9 +52,16 @@ def start(update: Update, context: CallbackContext):
     logger.info(f"> Start chat #{chat_id}")
     db = client.get_database('parking_db')
     employees = db.get_collection('employees')
+    keyboard = [
+        [InlineKeyboardButton("Help", callback_data='help'),
+         InlineKeyboardButton("Command", callback_data='commands'),
+         ]
+    ]
+    reply_markup = InlineKeyboardMarkup(keyboard)
     for user in employees.find({'user_id': chat_id}):
-        context.bot.send_message(chat_id=chat_id, text=f"💣 Welcome! 💣 {user['name']}")
-    users(update, context)
+        context.bot.send_message(chat_id=chat_id,
+                                 text=f"💣 Welcome! 💣 {user['name']}",
+                                 reply_markup=reply_markup)
 
 
 def users(update: Update, context: CallbackContext):
@@ -53,10 +96,9 @@ def status_tomorrow(update: Update, context: CallbackContext):
     context.bot.send_message(chat_id=chat_id, text=res)
 
 
-def book_tmrw(update: Update, context: CallbackContext):
+def book_tmrw(update : Update,context :CallbackContext):
     chat_id = update.effective_chat.id
-    text = update.message.text
-    logger.info(f"= Got on chat #{chat_id}: {text!r}")
+    logger.info(f"= Got on chat #{chat_id}")
     db = client.get_database('parking_db')
     requests = db.get_collection('request_list')
     requests.replace_one(
@@ -68,7 +110,7 @@ def book_tmrw(update: Update, context: CallbackContext):
     context.bot.send_message(chat_id=chat_id, text=res)
 
 
-def free_spot(update: Update, context: CallbackContext):
+def free_spot(update : Update , context : CallbackContext):
     chat_id = update.effective_chat.id
     db = client.get_database('parking_db')
     employees = db.get_collection('employees')
@@ -81,6 +123,7 @@ def free_spot(update: Update, context: CallbackContext):
         juniors_spot.delete_one({'user_id': chat_id})
     res = "thank you for releasing the spot for another great worker tmrw."
     context.bot.send_message(chat_id=chat_id, text=res)
+
 
 
 def send_plan(update: Update, context: CallbackContext):
@@ -99,7 +142,7 @@ def send_plan(update: Update, context: CallbackContext):
 
 def user_as_string(user):
     return f"{user['user_id']} {user['name']} {user['license plate']} " \
-           f"{user['rank']} {user['points']}\n"
+        f"{user['rank']} {user['points']}\n"
 
 
 def update_final_list():
@@ -175,6 +218,7 @@ if __name__ == '__main__':
 
     updater = Updater(token=secret_settings.BOT_TOKEN, use_context=True)
     dispatcher = updater.dispatcher
+    updater.dispatcher.add_handler(CallbackQueryHandler(button))
 
     start_handler = CommandHandler('start', start, )
     dispatcher.add_handler(start_handler)
