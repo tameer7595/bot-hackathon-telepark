@@ -8,7 +8,7 @@ import time
 from random import randint
 
 TOTAL_PARKING_SPOTS = 3
-basic_buttons = [['users', 'help'],['commands']]
+basic_buttons = [['users', 'help'],['book','free','status']]
 
 def get_bot_description():
     return """   Hello there👋. This is a company's parking lot management system🅿️,\
@@ -26,15 +26,15 @@ The decision is made according to the staff score💯'''
             /get_plan : get  """
 
 
-def button(update: Update, context: CallbackContext):
-    chat_id = update.effective_chat.id
-    text_command = update.callback_query.data
-    if text_command == 'book_tmrw':
-        book_tmrw(update, context)
-    elif text_command == 'free_spot':
-        free_tmrw(update, context)
-    elif text_command == 'status_tmrw':
-        status_tomorrow(update, context)
+# def button(update: Update, context: CallbackContext):
+#     chat_id = update.effective_chat.id
+#     text_command = update.callback_query.data
+#     if text_command == 'book_tmrw':
+#         book_tmrw(update, context)
+#     elif text_command == 'free_spot':
+#         free_tmrw(update, context)
+#     elif text_command == 'status_tmrw':
+#         status_tomorrow(update, context)
 
 
 def basic_button(update: Update, context: CallbackContext):
@@ -43,19 +43,29 @@ def basic_button(update: Update, context: CallbackContext):
     if text_command == 'help':
         response = get_bot_description()
         context.bot.send_message(chat_id=chat_id, text=response)
-    elif text_command == 'commands':
-        commands(update, context)
     elif text_command == 'users':
         users(update, context)
+    if text_command == 'book':
+            book_tmrw(update, context)
+    elif text_command == 'free':
+            free_tmrw(update, context)
+    elif text_command == 'status':
+            status_tomorrow(update, context)
 
 def generate_button(data):
-    keyboard = [
-        [
-            InlineKeyboardButton('Free' if data == 'free_spot' else 'Book', callback_data=data),
-        ],
-    ]
-    reply_markup = InlineKeyboardMarkup(keyboard)
-    return reply_markup
+    # keyboard = [
+    #     [
+    #         InlineKeyboardButton('Free' if data == 'free_spot' else 'Book', callback_data=data),
+    #     ],
+    # ]
+    # reply_markup = InlineKeyboardMarkup(keyboard)
+    # return reply_markup
+    if data == 'free':
+        basic_buttons = [['users', 'help'], ['book', 'status']]
+    elif data == 'book':
+        basic_buttons = [['users', 'help'], ['free', 'status']]
+
+    return ReplyKeyboardMarkup(basic_buttons)
 
 
 # bot commands #
@@ -85,22 +95,22 @@ def users(update: Update, context: CallbackContext):
     context.bot.send_message(chat_id=chat_id, text=res)
 
 
-def commands(update: Update, context: CallbackContext):
-    chat_id = update.effective_chat.id
-    response = 'Here a list of all commands you can do'
-    keyboard1 = [
-        [
-            InlineKeyboardButton("Book", callback_data='book_tmrw'),
-            InlineKeyboardButton("Free", callback_data='free_spot'),
-        ],
-        [
-            InlineKeyboardButton("Status", callback_data='status_tmrw'),
-
-        ]
-
-    ]
-    reply_markup = InlineKeyboardMarkup(keyboard1)
-    context.bot.send_message(chat_id=chat_id, text=response, reply_markup=reply_markup)
+# def commands(update: Update, context: CallbackContext):
+#     chat_id = update.effective_chat.id
+#     response = 'Here a list of all commands you can do'
+#     keyboard1 = [
+#         [
+#             InlineKeyboardButton("Book", callback_data='book_tmrw'),
+#             InlineKeyboardButton("Free", callback_data='free_spot'),
+#         ],
+#         [
+#             InlineKeyboardButton("Status", callback_data='status_tmrw'),
+#
+#         ]
+#
+#     ]
+#     reply_markup = InlineKeyboardMarkup(keyboard1)
+#     context.bot.send_message(chat_id=chat_id, text=response, reply_markup=reply_markup)
 
 
 def status_tomorrow(update: Update, context: CallbackContext):
@@ -123,7 +133,7 @@ def status_tomorrow(update: Update, context: CallbackContext):
         count += 1
     res += f'empty * {TOTAL_PARKING_SPOTS - count}'
     context.bot.send_message(chat_id=chat_id, text=res)
-    commands(update,context)
+    # commands(update,context)
 
 
 def book_tmrw(update: Update, context: CallbackContext):
@@ -142,7 +152,9 @@ def book_tmrw(update: Update, context: CallbackContext):
         requests.replace_one({"user_id": chat_id}, {"user_id": chat_id, "time": time.time()},
                              upsert=True)
         res = 'we received your request, we will reply to you soon'
-    context.bot.send_message(chat_id=chat_id, text=res, reply_markup=generate_button('free_spot'))
+    context.bot.send_message(chat_id=chat_id, text=res , reply_markup = generate_button('book'))
+    status_tomorrow(update,context)
+
 
 
 def free_tmrw(update: Update, context: CallbackContext):
@@ -157,7 +169,7 @@ def free_tmrw(update: Update, context: CallbackContext):
         juniors_spot = db.get_collection('request_list')
         juniors_spot.delete_one({'user_id': chat_id})
     res = "thank you for releasing the spot for another great worker tmrw."
-    context.bot.send_message(chat_id=chat_id, text=res, reply_markup=generate_button('book_tmrw'))
+    context.bot.send_message(chat_id=chat_id, text=res ,reply_markup = generate_button('free'))
 
 
 def send_plan(update: Update, context: CallbackContext):
@@ -253,7 +265,7 @@ if __name__ == '__main__':
     updater = Updater(token=secret_settings.BOT_TOKEN, use_context=True)
 
     dispatcher = updater.dispatcher
-    updater.dispatcher.add_handler(CallbackQueryHandler(button))
+    # updater.dispatcher.add_handler(CallbackQueryHandler(button))
 
     echo_handler = MessageHandler(Filters.text, basic_button)
     dispatcher.add_handler(echo_handler)
@@ -264,8 +276,8 @@ if __name__ == '__main__':
     users_handler = CommandHandler('users', users, )
     dispatcher.add_handler(users_handler)
 
-    cmds_handler = CommandHandler('commands', commands, )
-    dispatcher.add_handler(cmds_handler)
+    # cmds_handler = CommandHandler('commands', commands, )
+    # dispatcher.add_handler(cmds_handler)
 
     free_handler = CommandHandler('free_tmrw', free_tmrw, )
     dispatcher.add_handler(free_handler)
