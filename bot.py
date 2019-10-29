@@ -2,13 +2,13 @@ import secret_settings
 
 import pymongo
 import logging
-from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
-from telegram.ext import CommandHandler, CallbackContext, Updater, CallbackQueryHandler
+from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, ReplyKeyboardMarkup
+from telegram.ext import CommandHandler, CallbackContext, Updater, CallbackQueryHandler ,Filters,MessageHandler
 import time
 from random import randint
 
 TOTAL_PARKING_SPOTS = 3
-
+basic_buttons = [['users', 'help'],['commands']]
 
 def get_bot_description():
     return """   Hello there👋. This is a company's parking lot management system🅿️,\
@@ -29,21 +29,24 @@ The decision is made according to the staff score💯'''
 def button(update: Update, context: CallbackContext):
     chat_id = update.effective_chat.id
     text_command = update.callback_query.data
+    if text_command == 'book_tmrw':
+        book_tmrw(update, context)
+    elif text_command == 'free_spot':
+        free_tmrw(update, context)
+    elif text_command == 'status_tmrw':
+        status_tomorrow(update, context)
+
+
+def basic_button(update: Update, context: CallbackContext):
+    chat_id = update.effective_chat.id
+    text_command = update.message.text
     if text_command == 'help':
         response = get_bot_description()
         context.bot.send_message(chat_id=chat_id, text=response)
     elif text_command == 'commands':
         commands(update, context)
-    else:
-        if text_command == 'book_tmrw':
-            book_tmrw(update, context)
-        elif text_command == 'free_spot':
-            free_tmrw(update, context)
-        elif text_command == 'status_tmrw':
-            status_tomorrow(update, context)
-        elif text_command == 'users':
-            users(update, context)
-
+    elif text_command == 'users':
+        users(update, context)
 
 def generate_button(data):
     keyboard = [
@@ -68,7 +71,8 @@ def start(update: Update, context: CallbackContext):
         user = {'user_id': chat_id, 'name': update.message.from_user.first_name,
                 'license plate': randint(103, 200), 'rank': 2, 'points': 0}
         employees.replace_one({'user_id': chat_id}, user, upsert=True)
-    context.bot.send_message(chat_id=chat_id, text=f"🚗️ Welcome {user['name']}! 🚗️",)
+    reply_markup = ReplyKeyboardMarkup(basic_buttons)
+    context.bot.send_message(chat_id=chat_id, text=f"🚗️ Welcome {user['name']}! 🚗️", reply_markup= reply_markup)
 
 
 def users(update: Update, context: CallbackContext):
@@ -91,7 +95,6 @@ def commands(update: Update, context: CallbackContext):
         ],
         [
             InlineKeyboardButton("Status", callback_data='status_tmrw'),
-            InlineKeyboardButton("HElP", callback_data='help'),
 
         ]
 
@@ -248,8 +251,12 @@ if __name__ == '__main__':
     logger = logging.getLogger(__name__)
 
     updater = Updater(token=secret_settings.BOT_TOKEN, use_context=True)
+
     dispatcher = updater.dispatcher
     updater.dispatcher.add_handler(CallbackQueryHandler(button))
+
+    echo_handler = MessageHandler(Filters.text, basic_button)
+    dispatcher.add_handler(echo_handler)
 
     start_handler = CommandHandler('start', start, )
     dispatcher.add_handler(start_handler)
