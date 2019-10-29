@@ -43,7 +43,7 @@ def status_tomorrow(update: Update, context: CallbackContext):
         res += user_as_string(employees.find_one({'user_id': user['user_id']}))
         count += 1
     for waiting_user in request_list.find().sort(
-            [('user_id', pymongo.DESCENDING), ('time', pymongo.DESCENDING)]):
+            [('points', pymongo.DESCENDING), ('time', pymongo.DESCENDING)]):
         if count == TOTAL_PARKING_SPOTS:
             break
         res += user_as_string(employees.find_one({'user_id': waiting_user['user_id']}))
@@ -83,7 +83,15 @@ def free_spot(update: Update, context: CallbackContext):
 
 
 def send_plan(update: Update, context: CallbackContext):
-    pass
+    chat_id = update.effective_chat.id
+    db = client.get_database('parking_db')
+    final_list = db.get_collection('final_list')
+    if final_list.find_one({'user_id': chat_id}):
+        context.bot.send_message(chat_id=chat_id,
+                                 text="your request has been accepted, you can park tmrw")
+    else:
+        context.bot.send_message(chat_id=chat_id,
+                                 text="your request has been rejected, no parking for you!")
 
 
 # helper methods #
@@ -94,7 +102,17 @@ def user_as_string(user):
 
 
 def update_final_list():
-    pass
+    db = client.get_database('parking_db')
+    final_list = db.get_collection('final_list')
+    empty_spots = TOTAL_PARKING_SPOTS - final_list.count()
+    request_list = db.get_collection('request_list')
+    for waiting_user in request_list.find().sort(
+            [('points', pymongo.DESCENDING), ('time', pymongo.DESCENDING)]):
+        if not empty_spots:  # empty == 0
+            break
+        final_list.replace_one({'user_id': waiting_user['user_id']},
+                               {'user_id': waiting_user['user_id']}, upsert=True)
+        empty_spots -= 1
 
 
 # db #
@@ -172,8 +190,8 @@ if __name__ == '__main__':
     users_handler = CommandHandler('status_tmrw', status_tomorrow, )
     dispatcher.add_handler(users_handler)
 
-    users_handler = CommandHandler('send_plan', status_tomorrow, )
-    dispatcher.add_handler(users_handler)
+    send_plan_handler = CommandHandler('send_plan', send_plan, )
+    dispatcher.add_handler(send_plan_handler)
 
     logger.info("* Start polling...")
     updater.start_polling()  # Starts polling in a background thread.
