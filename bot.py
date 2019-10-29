@@ -2,13 +2,18 @@ import secret_settings
 
 import pymongo
 import logging
-from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, ReplyKeyboardMarkup
-from telegram.ext import CommandHandler, CallbackContext, Updater, CallbackQueryHandler ,Filters,MessageHandler
+from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, ReplyKeyboardMarkup, \
+    ParseMode
+from telegram.ext import CommandHandler, CallbackContext, Updater, CallbackQueryHandler, Filters, \
+    MessageHandler
 import time
 from random import randint
+from prettytable import PrettyTable
 
 TOTAL_PARKING_SPOTS = 3
+
 basic_buttons = [['users', 'help'],['book','free','status']]
+
 
 def get_bot_description():
     return """   Hello there👋. This is a company's parking lot management system🅿️,\
@@ -26,6 +31,7 @@ The decision is made according to the staff score💯'''
             /get_plan : get  """
 
 
+
 # def button(update: Update, context: CallbackContext):
 #     chat_id = update.effective_chat.id
 #     text_command = update.callback_query.data
@@ -35,6 +41,16 @@ The decision is made according to the staff score💯'''
 #         free_tmrw(update, context)
 #     elif text_command == 'status_tmrw':
 #         status_tomorrow(update, context)
+
+# def button(update: Update, context: CallbackContext):
+#     text_command = update.callback_query.data
+#     if text_command == 'book_tmrw':
+#         book_tmrw(update, context)
+#     elif text_command == 'free_spot':
+#         free_tmrw(update, context)
+#     elif text_command == 'status_tmrw':
+#         status_tomorrow(update, context)
+
 
 
 def basic_button(update: Update, context: CallbackContext):
@@ -51,6 +67,7 @@ def basic_button(update: Update, context: CallbackContext):
             free_tmrw(update, context)
     elif text_command == 'status':
             status_tomorrow(update, context)
+
 
 def generate_button(data):
     # keyboard = [
@@ -75,24 +92,24 @@ def start(update: Update, context: CallbackContext):
     logger.info(f"> Start chat #{chat_id}")
     db = client.get_database('parking_db')
     employees = db.get_collection('employees')
-
     user = employees.find_one({'user_id': chat_id})
     if not user:
         user = {'user_id': chat_id, 'name': update.message.from_user.first_name,
                 'license plate': randint(103, 200), 'rank': 2, 'points': 0}
         employees.replace_one({'user_id': chat_id}, user, upsert=True)
     reply_markup = ReplyKeyboardMarkup(basic_buttons)
-    context.bot.send_message(chat_id=chat_id, text=f"🚗️ Welcome {user['name']}! 🚗️", reply_markup= reply_markup)
+    context.bot.send_message(chat_id=chat_id, text=f"🚗️ Welcome {user['name']}! 🚗️",
+                             reply_markup=reply_markup)
 
 
 def users(update: Update, context: CallbackContext):
     chat_id = update.effective_chat.id
     db = client.get_database('parking_db')
     employees = db.get_collection('employees')
-    res = 'user_id - name - license plate - rank - points\n'
+    res = []
     for user in employees.find():
-        res += user_as_string(user)
-    context.bot.send_message(chat_id=chat_id, text=res)
+        res.append(user['name'])
+    context.bot.send_message(chat_id=chat_id, text=', '.join(res), parse_mode=ParseMode.MARKDOWN)
 
 
 # def commands(update: Update, context: CallbackContext):
@@ -114,26 +131,30 @@ def users(update: Update, context: CallbackContext):
 
 
 def status_tomorrow(update: Update, context: CallbackContext):
-    # print final list
     chat_id = update.effective_chat.id
     db = client.get_database('parking_db')
     final_list = db.get_collection('final_list')
     request_list = db.get_collection('request_list')
     employees = db.get_collection('employees')
-    res = 'user_id - name - license plate - rank - points\n'
+    table = PrettyTable()
+    table.title = 'Parking slots'
+    table.field_names = ["name", "rank", "points"]
     count = 0
     for user in final_list.find():
-        res += user_as_string(employees.find_one({'user_id': user['user_id']}))
+        user = employees.find_one({'user_id': user['user_id']})
+        table.add_row([user['name'], user['rank'], user['points']])
         count += 1
     for waiting_user in request_list.find().sort(
             [('points', pymongo.DESCENDING), ('time', pymongo.ASCENDING)]):
         if count == TOTAL_PARKING_SPOTS:
             break
-        res += user_as_string(employees.find_one({'user_id': waiting_user['user_id']}))
+        user = employees.find_one({'user_id': waiting_user['user_id']})
+        table.add_row([user['name'], user['rank'], user['points']])
         count += 1
-    res += f'empty * {TOTAL_PARKING_SPOTS - count}'
-    context.bot.send_message(chat_id=chat_id, text=res)
-    # commands(update,context)
+    for i in range(TOTAL_PARKING_SPOTS - count):
+        table.add_row(['---', '---', '---'])
+    text = f"""```{table.get_string()}```"""
+    context.bot.send_message(chat_id=chat_id, text=text, parse_mode=ParseMode.MARKDOWN)
 
 
 def book_tmrw(update: Update, context: CallbackContext):
@@ -152,6 +173,7 @@ def book_tmrw(update: Update, context: CallbackContext):
         requests.replace_one({"user_id": chat_id}, {"user_id": chat_id, "time": time.time()},
                              upsert=True)
         res = 'we received your request, we will reply to you soon'
+
     context.bot.send_message(chat_id=chat_id, text=res , reply_markup = generate_button('book'))
     status_tomorrow(update,context)
 
@@ -188,7 +210,7 @@ def send_plan(update: Update, context: CallbackContext):
 
 def user_as_string(user):
     return f"{user['user_id']} {user['name']} {user['license plate']} " \
-        f"{user['rank']} {user['points']}\n"
+           f"{user['rank']} {user['points']}\n"
 
 
 def update_final_list():
