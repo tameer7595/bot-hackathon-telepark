@@ -5,6 +5,8 @@ import logging
 from telegram import Update
 from telegram.ext import CommandHandler, CallbackContext, Updater
 
+TOTAL_PARKING_SPOTS = 3
+
 
 def user_as_string(user):
     return f"{user['user_id']} {user['name']} {user['license plate']}\n"
@@ -36,8 +38,11 @@ def status_tomorrow(update: Update, context: CallbackContext):
     final_list = db.get_collection('final_list')
     employees = db.get_collection('employees')
     res = ""
+    count = 0
     for user in final_list.find():
         res += user_as_string(employees.find_one({'user_id': user['user_id']}))
+        count += 1
+    res += f'empty * {TOTAL_PARKING_SPOTS - count}'
     context.bot.send_message(chat_id=chat_id, text=res)
 
 
@@ -50,13 +55,13 @@ def create_users():
     employees.delete_many({})
     employees.create_index([('user_id', pymongo.ASCENDING)])
     employees.replace_one({'user_id': liwaa_id},
-                          {'user_id': liwaa_id, 'name': 'liwaa', 'license plate': 100},
+                          {'user_id': liwaa_id, 'name': 'liwaa', 'license plate': 100, 'rank': 1},
                           upsert=True)
     employees.replace_one({'user_id': tameer_id},
-                          {'user_id': tameer_id, 'name': 'tameer', 'license plate': 101},
+                          {'user_id': tameer_id, 'name': 'tameer', 'license plate': 101, 'rank': 2},
                           upsert=True)
     employees.replace_one({'user_id': omar_id},
-                          {'user_id': omar_id, 'name': 'omar', 'license plate': 102},
+                          {'user_id': omar_id, 'name': 'omar', 'license plate': 102, 'rank': 2},
                           upsert=True)
 
 
@@ -67,8 +72,10 @@ def create_final_list():
     final_list.create_index([('user_id', pymongo.ASCENDING)])
     final_list.delete_many({})
     for employee in employees.find():
-        final_list.replace_one({'user_id': employee['user_id']}, {'user_id': employee['user_id']},
-                               upsert=True)
+        if employee['rank'] == 1:
+            final_list.replace_one({'user_id': employee['user_id']},
+                                   {'user_id': employee['user_id']},
+                                   upsert=True)
 
 
 if __name__ == '__main__':
