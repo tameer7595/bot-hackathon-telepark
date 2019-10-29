@@ -9,9 +9,7 @@ import time
 TOTAL_PARKING_SPOTS = 3
 
 
-def user_as_string(user):
-    return f"{user['user_id']} {user['name']} {user['license plate']} {user['rank']} {user['points']}\n"
-
+# bot commands #
 
 def start(update: Update, context: CallbackContext):
     chat_id = update.effective_chat.id
@@ -32,6 +30,28 @@ def users(update: Update, context: CallbackContext):
     context.bot.send_message(chat_id=chat_id, text=res)
 
 
+def status_tomorrow(update: Update, context: CallbackContext):
+    # print final list
+    chat_id = update.effective_chat.id
+    db = client.get_database('parking_db')
+    final_list = db.get_collection('final_list')
+    request_list = db.get_collection('request_list')
+    employees = db.get_collection('employees')
+    res = 'user_id - name - license plate - rank - points\n'
+    count = 0
+    for user in final_list.find():
+        res += user_as_string(employees.find_one({'user_id': user['user_id']}))
+        count += 1
+    for waiting_user in request_list.find().sort(
+            [('user_id', pymongo.DESCENDING), ('time', pymongo.DESCENDING)]):
+        if count == TOTAL_PARKING_SPOTS:
+            break
+        res += user_as_string(employees.find_one({'user_id': waiting_user['user_id']}))
+        count += 1
+    res += f'empty * {TOTAL_PARKING_SPOTS - count}'
+    context.bot.send_message(chat_id=chat_id, text=res)
+
+
 def book_tmrw(update: Update, context: CallbackContext):
     chat_id = update.effective_chat.id
     text = update.message.text
@@ -47,26 +67,43 @@ def book_tmrw(update: Update, context: CallbackContext):
     context.bot.send_message(chat_id=chat_id, text=res)
 
 
+def free_spot(update: Update, context: CallbackContext):
+    chat_id = update.effective_chat.id
+    db = client.get_database('parking_db')
+    employees = db.get_collection('employees')
+    user_info = employees.find_one({'user_id': chat_id})  # return a dictionary
+    if user_info['rank'] == 1:
+        seniors_spot = db.get_collection('final_list')
+        seniors_spot.delete_one({'user_id': chat_id})
+    else:
+        juniors_spot = db.get_collection('request_list')
+        juniors_spot.delete_one({'user_id': chat_id})
+    res = "thank you for releasing the spot for another great worker tmrw."
+    context.bot.send_message(chat_id=chat_id, text=res)
+
+
+def send_plan(update: Update, context: CallbackContext):
+    pass
+
+
+# helper methods #
+
+def user_as_string(user):
+    return f"{user['user_id']} {user['name']} {user['license plate']} " \
+           f"{user['rank']} {user['points']}\n"
+
+
+def update_final_list():
+    pass
+
+
+# db #
+
 def create_request_list():
     db = client.get_database('parking_db')
     requests = db.get_collection('request_list')
     requests.delete_many({})
     requests.create_index([('user_id', pymongo.ASCENDING)])
-
-
-def status_tomorrow(update: Update, context: CallbackContext):
-    # print final list
-    chat_id = update.effective_chat.id
-    db = client.get_database('parking_db')
-    final_list = db.get_collection('final_list')
-    employees = db.get_collection('employees')
-    res = 'user_id - name - license plate - rank - points\n'
-    count = 0
-    for user in final_list.find():
-        res += user_as_string(employees.find_one({'user_id': user['user_id']}))
-        count += 1
-    res += f'empty * {TOTAL_PARKING_SPOTS - count}'
-    context.bot.send_message(chat_id=chat_id, text=res)
 
 
 def creat_users():
@@ -89,20 +126,6 @@ def creat_users():
                           {'user_id': omar_id, 'name': 'omar', 'license plate': 102, 'rank': 2,
                            'points': 0},
                           upsert=True)
-# TAMEER
-def free_spot(update: Update, context: CallbackContext):
-    chat_id = update.effective_chat.id
-    db = client.get_database('parking_db')
-    employees = db.get_collection('employees')
-    user_info = employees.find_one({'user_id': chat_id })# return a dictionary
-    if user_info['rank'] == 1:
-        seniors_spot = db.get_collection('final_list')
-        seniors_spot.delete_one({'user_id': chat_id})
-    else:
-        juniors_spot = db.get_collection('request_list')
-        juniors_spot.delete_one({'user_id': chat_id})
-    res = "thank you for releasing the spot for another great worker tmrw."
-    context.bot.send_message(chat_id=chat_id, text=res)
 
 
 def create_final_list():
@@ -120,6 +143,7 @@ def create_final_list():
 
 if __name__ == '__main__':
     client = pymongo.MongoClient()
+
     creat_users()
     create_request_list()
     create_final_list()
@@ -139,11 +163,8 @@ if __name__ == '__main__':
     users_handler = CommandHandler('users', users, )
     dispatcher.add_handler(users_handler)
 
-
-    #TAMEER
-    free_handler = CommandHandler('free_tmrw',free_spot, )
+    free_handler = CommandHandler('free_tmrw', free_spot, )
     dispatcher.add_handler(free_handler)
-
 
     book_tomorrow_handler = CommandHandler('book_tmrw', book_tmrw, )
     dispatcher.add_handler(book_tomorrow_handler)
@@ -151,6 +172,8 @@ if __name__ == '__main__':
     users_handler = CommandHandler('status_tmrw', status_tomorrow, )
     dispatcher.add_handler(users_handler)
 
+    users_handler = CommandHandler('send_plan', status_tomorrow, )
+    dispatcher.add_handler(users_handler)
 
     logger.info("* Start polling...")
     updater.start_polling()  # Starts polling in a background thread.
