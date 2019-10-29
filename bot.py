@@ -9,10 +9,11 @@ from telegram.ext import CommandHandler, CallbackContext, Updater, CallbackQuery
 import time
 from random import randint
 from prettytable import PrettyTable
+import datetime
 
 TOTAL_PARKING_SPOTS = 3
 
-basic_buttons = [['users', 'help'],['book','free','status']]
+basic_buttons = [['users', 'help'], ['book', 'free', 'status']]
 
 
 def get_bot_description():
@@ -29,7 +30,6 @@ The decision is made according to the staff score💯'''
             /book_tmrw : Ask for parking spot
             /status : Displays the current parking status
             /get_plan : get  """
-
 
 
 # def button(update: Update, context: CallbackContext):
@@ -52,7 +52,6 @@ The decision is made according to the staff score💯'''
 #         status_tomorrow(update, context)
 
 
-
 def basic_button(update: Update, context: CallbackContext):
     chat_id = update.effective_chat.id
     text_command = update.message.text
@@ -62,11 +61,11 @@ def basic_button(update: Update, context: CallbackContext):
     elif text_command == 'users':
         users(update, context)
     if text_command == 'book':
-            book_tmrw(update, context)
+        book_tmrw(update, context)
     elif text_command == 'free':
-            free_tmrw(update, context)
+        free_tmrw(update, context)
     elif text_command == 'status':
-            status_tomorrow(update, context)
+        status_tomorrow(update, context)
 
 
 def generate_button(data):
@@ -174,9 +173,8 @@ def book_tmrw(update: Update, context: CallbackContext):
                              upsert=True)
         res = 'we received your request, we will reply to you soon'
 
-    context.bot.send_message(chat_id=chat_id, text=res , reply_markup = generate_button('book'))
-    status_tomorrow(update,context)
-
+    context.bot.send_message(chat_id=chat_id, text=res, reply_markup=generate_button('book'))
+    status_tomorrow(update, context)
 
 
 def free_tmrw(update: Update, context: CallbackContext):
@@ -191,7 +189,7 @@ def free_tmrw(update: Update, context: CallbackContext):
         juniors_spot = db.get_collection('request_list')
         juniors_spot.delete_one({'user_id': chat_id})
     res = "thank you for releasing the spot for another great worker tmrw."
-    context.bot.send_message(chat_id=chat_id, text=res ,reply_markup = generate_button('free'))
+    context.bot.send_message(chat_id=chat_id, text=res, reply_markup=generate_button('free'))
 
 
 def send_plan(update: Update, context: CallbackContext):
@@ -213,18 +211,22 @@ def user_as_string(user):
            f"{user['rank']} {user['points']}\n"
 
 
-def update_final_list():
+def update_final_list(context: CallbackContext):
     db = client.get_database('parking_db')
     final_list = db.get_collection('final_list')
     empty_spots = TOTAL_PARKING_SPOTS - final_list.count()
     request_list = db.get_collection('request_list')
+    accept_text = 'your request has been accepted, you can park tmrw'
+    reject_text = 'your request has been rejected, no parking for you!'
     for waiting_user in request_list.find().sort(
             [('points', pymongo.DESCENDING), ('time', pymongo.ASCENDING)]):
         if not empty_spots:  # empty == 0
-            break
-        final_list.replace_one({'user_id': waiting_user['user_id']},
-                               {'user_id': waiting_user['user_id']}, upsert=True)
-        empty_spots -= 1
+            context.bot.send_message(chat_id=waiting_user['user_id'], text=reject_text)
+        else:
+            final_list.replace_one({'user_id': waiting_user['user_id']},
+                                   {'user_id': waiting_user['user_id']}, upsert=True)
+            context.bot.send_message(chat_id=waiting_user['user_id'], text=accept_text)
+            empty_spots -= 1
 
 
 # db #
@@ -252,10 +254,10 @@ def creat_users():
                           {'user_id': tameer_id, 'name': 'tameer', 'license plate': 101, 'rank': 1,
                            'points': 0},
                           upsert=True)
-    employees.replace_one({'user_id': omar_id},
-                          {'user_id': omar_id, 'name': 'omar', 'license plate': 102, 'rank': 1,
-                           'points': 0},
-                          upsert=True)
+    # employees.replace_one({'user_id': omar_id},
+    #                       {'user_id': omar_id, 'name': 'omar', 'license plate': 102, 'rank': 1,
+    #                        'points': 0},
+    #                       upsert=True)
 
 
 def create_final_list():
@@ -288,6 +290,11 @@ if __name__ == '__main__':
 
     dispatcher = updater.dispatcher
     # updater.dispatcher.add_handler(CallbackQueryHandler(button))
+
+    jobs = updater.job_queue
+    jobs.run_daily(update_final_list, datetime.datetime(datetime.datetime.now().year,
+                                                        datetime.datetime.now().month,
+                                                        datetime.datetime.now().day, 22, 59, 0))
 
     echo_handler = MessageHandler(Filters.text, basic_button)
     dispatcher.add_handler(echo_handler)
