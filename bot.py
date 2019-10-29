@@ -5,6 +5,7 @@ import logging
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import CommandHandler, CallbackContext, Updater, CallbackQueryHandler
 import time
+from random import randint
 
 TOTAL_PARKING_SPOTS = 3
 
@@ -59,9 +60,13 @@ def start(update: Update, context: CallbackContext):
         ]
     ]
     reply_markup = InlineKeyboardMarkup(keyboard)
-    for user in employees.find({'user_id': chat_id}):
-        context.bot.send_message(chat_id=chat_id, text=f"🚗️ Welcome {user['name']}! 🚗️",
-                                 reply_markup=reply_markup)
+    user = employees.find_one({'user_id': chat_id})
+    if not user:
+        user = {'user_id': chat_id, 'name': update.message.from_user.first_name,
+                'license plate': randint(103, 200), 'rank': 2, 'points': 0}
+        employees.replace_one({'user_id': chat_id}, user, upsert=True)
+    context.bot.send_message(chat_id=chat_id, text=f"🚗️ Welcome {user['name']}! 🚗️",
+                             reply_markup=reply_markup)
 
 
 def users(update: Update, context: CallbackContext):
@@ -87,7 +92,7 @@ def status_tomorrow(update: Update, context: CallbackContext):
         res += user_as_string(employees.find_one({'user_id': user['user_id']}))
         count += 1
     for waiting_user in request_list.find().sort(
-            [('points', pymongo.DESCENDING), ('time', pymongo.DESCENDING)]):
+            [('points', pymongo.DESCENDING), ('time', pymongo.ASCENDING)]):
         if count == TOTAL_PARKING_SPOTS:
             break
         res += user_as_string(employees.find_one({'user_id': waiting_user['user_id']}))
@@ -147,7 +152,7 @@ def update_final_list():
     empty_spots = TOTAL_PARKING_SPOTS - final_list.count()
     request_list = db.get_collection('request_list')
     for waiting_user in request_list.find().sort(
-            [('points', pymongo.DESCENDING), ('time', pymongo.DESCENDING)]):
+            [('points', pymongo.DESCENDING), ('time', pymongo.ASCENDING)]):
         if not empty_spots:  # empty == 0
             break
         final_list.replace_one({'user_id': waiting_user['user_id']},
