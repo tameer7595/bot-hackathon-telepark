@@ -4,3 +4,4 @@ secret_settings.py
 # To keep Udi and all the participants sane during the Hackathon
 Pipfile.lock  # In real-life projects this file should actually BE in the repository
 
+
