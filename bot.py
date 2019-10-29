@@ -9,7 +9,7 @@ TOTAL_PARKING_SPOTS = 3
 
 
 def user_as_string(user):
-    return f"{user['user_id']} {user['name']} {user['license plate']}\n"
+    return f"{user['user_id']} {user['name']} {user['license plate']} {user['rank']} {user['points']}\n"
 
 
 def start(update: Update, context: CallbackContext):
@@ -25,9 +25,9 @@ def users(update: Update, context: CallbackContext):
     chat_id = update.effective_chat.id
     db = client.get_database('parking_db')
     employees = db.get_collection('employees')
-    res = 'user_id - name - license plate\n'
+    res = 'user_id - name - license plate - rank - points\n'
     for user in employees.find():
-        res += f"{user['user_id']} {user['name']} {user['license plate']}\n"
+        res += user_as_string(user)
     context.bot.send_message(chat_id=chat_id, text=res)
 
 
@@ -37,7 +37,7 @@ def status_tomorrow(update: Update, context: CallbackContext):
     db = client.get_database('parking_db')
     final_list = db.get_collection('final_list')
     employees = db.get_collection('employees')
-    res = ""
+    res = 'user_id - name - license plate - rank - points\n'
     count = 0
     for user in final_list.find():
         res += user_as_string(employees.find_one({'user_id': user['user_id']}))
@@ -55,13 +55,16 @@ def create_users():
     employees.delete_many({})
     employees.create_index([('user_id', pymongo.ASCENDING)])
     employees.replace_one({'user_id': liwaa_id},
-                          {'user_id': liwaa_id, 'name': 'liwaa', 'license plate': 100, 'rank': 1},
+                          {'user_id': liwaa_id, 'name': 'liwaa', 'license plate': 100, 'rank': 1,
+                           'points': 0},
                           upsert=True)
     employees.replace_one({'user_id': tameer_id},
-                          {'user_id': tameer_id, 'name': 'tameer', 'license plate': 101, 'rank': 2},
+                          {'user_id': tameer_id, 'name': 'tameer', 'license plate': 101, 'rank': 2,
+                           'points': 0},
                           upsert=True)
     employees.replace_one({'user_id': omar_id},
-                          {'user_id': omar_id, 'name': 'omar', 'license plate': 102, 'rank': 2},
+                          {'user_id': omar_id, 'name': 'omar', 'license plate': 102, 'rank': 2,
+                           'points': 0},
                           upsert=True)
 
 
