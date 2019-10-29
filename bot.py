@@ -11,7 +11,19 @@ TOTAL_PARKING_SPOTS = 3
 
 
 def get_bot_description():
-    return 'help'
+    return """   Hello there👋. This is a company's parking lot management system🅿️,\
+please note that there are parking spaces that are fixed for specific employees😊.
+You can book / free parking from 8 pm to 7 am the next day.
+After 7 A.m., a list is decided and a message is sent in accordance with the \
+decision to anyone who has requested parking,
+The decision is made according to the staff score💯'''
+            Commands description:
+            /help : Get bot Description
+            /users :  Show info on all users
+            /free_tmrw : Release parking spot that have been booked
+            /book_tmrw : Ask for parking spot
+            /status : Displays the current parking status
+            /get_plan : get  """
 
 
 def button(update: Update, context: CallbackContext):
@@ -31,8 +43,16 @@ def button(update: Update, context: CallbackContext):
             status_tomorrow(update, context)
         elif text_command == 'users':
             users(update, context)
-        elif text_command == 'send_plan':
-            send_plan(update, context)
+
+
+def generate_button(data):
+    keyboard = [
+        [
+            InlineKeyboardButton('Free' if data == 'free_spot' else 'Book', callback_data=data),
+        ],
+    ]
+    reply_markup = InlineKeyboardMarkup(keyboard)
+    return reply_markup
 
 
 # bot commands #
@@ -42,22 +62,13 @@ def start(update: Update, context: CallbackContext):
     logger.info(f"> Start chat #{chat_id}")
     db = client.get_database('parking_db')
     employees = db.get_collection('employees')
-    keyboard = [
-        [
-            InlineKeyboardButton("All Commands", callback_data='commands'),
-        ],
-        [
-            InlineKeyboardButton("Help", callback_data='help'),
-        ]
-    ]
-    reply_markup = InlineKeyboardMarkup(keyboard)
+
     user = employees.find_one({'user_id': chat_id})
     if not user:
         user = {'user_id': chat_id, 'name': update.message.from_user.first_name,
                 'license plate': randint(103, 200), 'rank': 2, 'points': 0}
         employees.replace_one({'user_id': chat_id}, user, upsert=True)
-    context.bot.send_message(chat_id=chat_id, text=f"🚗️ Welcome {user['name']}! 🚗️",
-                             reply_markup=reply_markup)
+    context.bot.send_message(chat_id=chat_id, text=f"🚗️ Welcome {user['name']}! 🚗️",)
 
 
 def users(update: Update, context: CallbackContext):
@@ -68,7 +79,6 @@ def users(update: Update, context: CallbackContext):
     for user in employees.find():
         res += user_as_string(user)
     context.bot.send_message(chat_id=chat_id, text=res)
-    commands(update,context)
 
 
 def commands(update: Update, context: CallbackContext):
@@ -81,11 +91,10 @@ def commands(update: Update, context: CallbackContext):
         ],
         [
             InlineKeyboardButton("Status", callback_data='status_tmrw'),
-            InlineKeyboardButton("Users", callback_data='users'),
-        ],
-        [
-            InlineKeyboardButton("Get Plan", callback_data='send_plan')
+            InlineKeyboardButton("HElP", callback_data='help'),
+
         ]
+
     ]
     reply_markup = InlineKeyboardMarkup(keyboard1)
     context.bot.send_message(chat_id=chat_id, text=response, reply_markup=reply_markup)
@@ -130,8 +139,7 @@ def book_tmrw(update: Update, context: CallbackContext):
         requests.replace_one({"user_id": chat_id}, {"user_id": chat_id, "time": time.time()},
                              upsert=True)
         res = 'we received your request, we will reply to you soon'
-    context.bot.send_message(chat_id=chat_id, text=res)
-    commands(update,context)
+    context.bot.send_message(chat_id=chat_id, text=res, reply_markup=generate_button('free_spot'))
 
 
 def free_tmrw(update: Update, context: CallbackContext):
@@ -146,9 +154,7 @@ def free_tmrw(update: Update, context: CallbackContext):
         juniors_spot = db.get_collection('request_list')
         juniors_spot.delete_one({'user_id': chat_id})
     res = "thank you for releasing the spot for another great worker tmrw."
-    context.bot.send_message(chat_id=chat_id, text=res)
-    commands(update,context)
-
+    context.bot.send_message(chat_id=chat_id, text=res, reply_markup=generate_button('book_tmrw'))
 
 
 def send_plan(update: Update, context: CallbackContext):
@@ -161,7 +167,6 @@ def send_plan(update: Update, context: CallbackContext):
     else:
         context.bot.send_message(chat_id=chat_id,
                                  text="your request has been rejected, no parking for you!")
-    commands(update,context)
 
 
 # helper methods #
