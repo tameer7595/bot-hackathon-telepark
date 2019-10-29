@@ -97,9 +97,21 @@ def start(update: Update, context: CallbackContext):
         user = {'user_id': chat_id, 'name': update.message.from_user.first_name,
                 'license plate': randint(103, 200), 'rank': 2, 'points': 0}
         employees.replace_one({'user_id': chat_id}, user, upsert=True)
-    reply_markup = ReplyKeyboardMarkup(basic_buttons)
-    context.bot.send_message(chat_id=chat_id, text=f"🚗️ Welcome {user['name']}! 🚗️",
-                             reply_markup=reply_markup)
+        context.bot.send_message(chat_id=chat_id, text=f"🚗️ Welcome {user['name']}! 🚗️",
+                                 reply_markup=generate_button("free"))
+    else:
+        parks = db.get_collection('final_list')
+        user_with_parks = parks.find_one({'user_id': chat_id})
+        waiting_list = db.get_collection('request_list')
+        user_waiting = waiting_list.find_one({'user_id': chat_id})
+        if not user_with_parks and not user_waiting:
+            #reply_markup = ReplyKeyboardMarkup(basic_buttons)
+            context.bot.send_message(chat_id=chat_id, text=f"🚗️ Welcome {user['name']}! 🚗️",
+                                 reply_markup=generate_button('free'))
+        else:
+            context.bot.send_message(chat_id=chat_id, text=f"🚗️ Welcome {user['name']}! 🚗️",
+                                 reply_markup=generate_button('book'))
+
 
 
 def users(update: Update, context: CallbackContext):
@@ -248,10 +260,10 @@ def creat_users():
                           {'user_id': liwaa_id, 'name': 'liwaa', 'license plate': 100, 'rank': 1,
                            'points': 0},
                           upsert=True)
-    employees.replace_one({'user_id': tameer_id},
-                          {'user_id': tameer_id, 'name': 'tameer', 'license plate': 101, 'rank': 1,
-                           'points': 0},
-                          upsert=True)
+    # employees.replace_one({'user_id': tameer_id},
+    #                       {'user_id': tameer_id, 'name': 'tameer', 'license plate': 101, 'rank': 1,
+    #                        'points': 0},
+    #                       upsert=True)
     employees.replace_one({'user_id': omar_id},
                           {'user_id': omar_id, 'name': 'omar', 'license plate': 102, 'rank': 1,
                            'points': 0},
