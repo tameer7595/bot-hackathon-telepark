@@ -9,6 +9,8 @@ pytest = "*"
 [packages]
 python-telegram-bot = "*"
 pymongo = "*"
+pandas = "*"
+ptable = "*"
 
 [requires]
 python_version = "3.7"
