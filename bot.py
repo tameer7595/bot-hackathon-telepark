@@ -1,15 +1,9 @@
 import secret_settings
 
-print(secret_settings.BOT_TOKEN)
-
-# YOUR BOT HERE
-
-
 import pymongo
 import logging
-from telegram import Update, KeyboardButton, ReplyKeyboardMarkup
-from telegram.ext import CommandHandler, CallbackContext, MessageHandler, \
-    Filters, Updater
+from telegram import Update
+from telegram.ext import CommandHandler, CallbackContext, Updater
 
 
 def start(update: Update, context: CallbackContext):
@@ -29,20 +23,6 @@ def users(update: Update, context: CallbackContext):
     for user in employees.find():
         res += f"{user['user_id']} {user['name']} {user['license plate']}\n"
     context.bot.send_message(chat_id=chat_id, text=res)
-
-
-# def respond(update: Update, context: CallbackContext):
-#     chat_id = update.effective_chat.id
-#     text = update.message.text
-#     context.user_data['location'] = text
-#     logger.info(f"= Got on chat #{chat_id}: {text!r}")
-#     response = f'Please send your location to know how far you are from {text}'
-#     location_keyboard = KeyboardButton(text="send_location",
-#                                        request_location=True)
-#     custom_keyboard = [[location_keyboard]]
-#     reply_markup = ReplyKeyboardMarkup(custom_keyboard)
-#     context.bot.send_message(chat_id=update.message.chat_id, text=response,
-#                              reply_markup=reply_markup)
 
 
 def creat_users():
@@ -82,9 +62,6 @@ if __name__ == '__main__':
 
     users_handler = CommandHandler('users', users, )
     dispatcher.add_handler(users_handler)
-
-    # echo_handler = MessageHandler(Filters.text, respond)
-    # dispatcher.add_handler(echo_handler)
 
     logger.info("* Start polling...")
     updater.start_polling()  # Starts polling in a background thread.
