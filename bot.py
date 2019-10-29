@@ -24,12 +24,10 @@ After 7 A.m., a list is decided and a message is sent in accordance with the \
 decision to anyone who has requested parking,
 The decision is made according to the staff score💯'''
             Commands description:
-            /help : Get bot Description
             /users :  Show info on all users
             /free_tmrw : Release parking spot that have been booked
             /book_tmrw : Ask for parking spot
-            /status : Displays the current parking status
-            /get_plan : get  """
+            /status : Displays the current parking status"""
 
 
 # def button(update: Update, context: CallbackContext):
