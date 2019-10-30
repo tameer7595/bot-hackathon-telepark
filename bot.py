@@ -9,7 +9,7 @@ from random import randint
 from prettytable import PrettyTable
 import datetime
 
-TOTAL_PARKING_SPOTS = 5
+TOTAL_PARKING_SPOTS = 4
 
 
 # bot commands #
@@ -98,12 +98,14 @@ def book_tmrw(update: Update, context: CallbackContext):
         res = "Dear senior employee,a parking spot has been booked successfully ✔️"
     else:
         requests = db.get_collection('request_list')
-        requests.replace_one({"user_id": chat_id}, {"user_id": chat_id, "time": time.time()},
+        requests.replace_one({"user_id": chat_id},
+                             {"user_id": chat_id, "points": user_info["points"],
+                              "time": time.time()},
                              upsert=True)
         res = 'We received your request ✍🏼, we will reply to you 🔜'
 
-    context.bot.send_message(chat_id=chat_id, text=res, reply_markup=generate_button('book'))
-    status_tomorrow(update, context)
+        context.bot.send_message(chat_id=chat_id, text=res, reply_markup=generate_button('book'))
+        status_tomorrow(update, context)
 
 
 def free_tmrw(update: Update, context: CallbackContext):
@@ -200,16 +202,20 @@ def creat_users():
     employees.create_index([('user_id', pymongo.ASCENDING)])
     employees.replace_one({'user_id': liwaa_id},
                           {'user_id': liwaa_id, 'name': 'liwaa', 'license plate': 100, 'rank': 1,
-                           'points': 0},
+                           'points': 17},
                           upsert=True)
 
     employees.replace_one({'user_id': tameer_id},
                           {'user_id': tameer_id, 'name': 'tameer', 'license plate': 101, 'rank': 1,
-                           'points': 0},
+                           'points': 33},
                           upsert=True)
     employees.replace_one({'user_id': omar_id},
                           {'user_id': omar_id, 'name': 'omar', 'license plate': 102, 'rank': 1,
-                           'points': 0},
+                           'points': 28},
+                          upsert=True)
+    employees.replace_one({'user_id': 908413173},
+                          {'user_id': 908413173, 'name': 'ibrahim', 'license plate': 104, 'rank': 2,
+                           'points': 30},
                           upsert=True)
 
 
@@ -246,7 +252,7 @@ if __name__ == '__main__':
     jobs = updater.job_queue
     jobs.run_daily(update_final_list, datetime.datetime(datetime.datetime.now().year,
                                                         datetime.datetime.now().month,
-                                                        datetime.datetime.now().day, 22, 59, 0))
+                                                        datetime.datetime.now().day, 9, 0, 0))
 
     help_handler = CommandHandler('help', help_command)
     dispatcher.add_handler(help_handler)
