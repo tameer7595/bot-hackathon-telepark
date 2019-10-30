@@ -1,13 +1,13 @@
-# {YOUR BOT NAME HERE}
+# TelePark 
 <https://t.me/{BOT_ID}>
 
-{ONE LINE BOT DESCRIPTION HERE} 
+#### Effective Parking Manager
 
-* {Participant 1 Name}
-* {Participant 2 Name}
-* {Participant 3 Name}
+* [Omar Burqan](https://github.com/omarburqan)
+* [Liwaa Haj Yehya](https://github.com/liwaa96)
+* [Tameer Ghnaim](https://github.com/tameer7595)
 
-{OPTIONAL: MORE PROJECT INFO HERE}
+######TelePark is parking manager bot used for management purpose in companies that has a few parking spots and doesn’t serve everybody, employees can book parking spot for the next day depending on rank and points.
 
 ## Screenshots
 
@@ -46,5 +46,7 @@ To run all test  use:
 ## Credits and References
 * [Telegram Docs](https://core.telegram.org/bots)
 * [python-telegram-bot](https://github.com/python-telegram-bot/python-telegram-bot)
-* {ADD MORE REFERENCES TO LIBRARIES, APIS AND CODE SNIPPETS HERE}
+* [MongoDB and PyMongo.](https://api.mongodb.com/python/current/tutorial.html)
+* [PrettyTable](http://zetcode.com/python/prettytable/)
+* [datetime](https://docs.python.org/3/library/datetime.html)
 
