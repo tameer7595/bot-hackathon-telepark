@@ -11,13 +11,22 @@
 
 ## Screenshots
 
-![SCREESHOT DECSRIPTION](screenshots/shopping-list-bot-1.png)
+![START](screenshots/start.jpg)
+
+![HELP](screenshots/help.jpg)
+
+![BOOK](screenshots/book.jpg)
+
+![SHOW LIST OF USERS](screenshots/users.jpg)
+
 
 ## How to Run This Bot
 ### Prerequisites
 * Python 3.7
 * pipenv
-* {ADD MORE DEPENDENCIES HERE - FOR EXAMPLE MONGODB OR ANYTHING ELSE}
+* [MongoDB and PyMongo.](https://api.mongodb.com/python/current/tutorial.html)
+* [PrettyTable](http://zetcode.com/python/prettytable/)
+* [datetime](https://docs.python.org/3/library/datetime.html)
 
 ### Setup
 * Clone this repo from github
@@ -46,7 +55,3 @@ To run all test  use:
 ## Credits and References
 * [Telegram Docs](https://core.telegram.org/bots)
 * [python-telegram-bot](https://github.com/python-telegram-bot/python-telegram-bot)
-* [MongoDB and PyMongo.](https://api.mongodb.com/python/current/tutorial.html)
-* [PrettyTable](http://zetcode.com/python/prettytable/)
-* [datetime](https://docs.python.org/3/library/datetime.html)
-
