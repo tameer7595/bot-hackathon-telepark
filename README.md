@@ -1,5 +1,5 @@
 # TelePark 
-<https://t.me/{BOT_ID}>
+[Telegram Bot](t.me/Tele_Park_bot)
 
 ### Effective Parking Manager
 
