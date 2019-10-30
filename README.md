@@ -7,7 +7,7 @@
 * [Liwaa Haj Yehya](https://github.com/liwaa96)
 * [Tameer Ghnaim](https://github.com/tameer7595)
 
-####TelePark is parking manager bot used for management purpose in companies that has a few parking spots and doesn’t serve everybody, employees can book parking spot for the next day depending on rank and points.
+##### TelePark is parking manager bot used for management purpose in companies that has a few parking spots and doesn’t serve everybody, employees can book parking spot for the next day depending on rank and points.
 
 ## Screenshots
 
