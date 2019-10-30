@@ -1,7 +1,7 @@
 # TelePark 
 <https://t.me/{BOT_ID}>
 
-#### Effective Parking Manager
+### Effective Parking Manager
 
 * [Omar Burqan](https://github.com/omarburqan)
 * [Liwaa Haj Yehya](https://github.com/liwaa96)
