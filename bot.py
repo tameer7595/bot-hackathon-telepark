@@ -3,7 +3,7 @@ import secret_settings
 import pymongo
 import logging
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, ReplyKeyboardMarkup, \
-    ParseMode
+    ParseMode, KeyboardButton
 from telegram.ext import CommandHandler, CallbackContext, Updater, CallbackQueryHandler, Filters, \
     MessageHandler
 import time
@@ -12,8 +12,6 @@ from prettytable import PrettyTable
 import datetime
 
 TOTAL_PARKING_SPOTS = 3
-
-basic_buttons = [['users', 'help'], ['book', 'free', 'status']]
 
 
 def get_bot_description():
@@ -27,7 +25,7 @@ The decision is made according to the staff score💯'''
             /users :  Show info on all users
             /free_tmrw : Release parking spot that have been booked
             /book_tmrw : Ask for parking spot
-            /status : Displays the current parking status"""
+            /status_tmrw : Displays the current parking status"""
 
 
 # def button(update: Update, context: CallbackContext):
@@ -50,20 +48,20 @@ The decision is made according to the staff score💯'''
 #         status_tomorrow(update, context)
 
 
-def basic_button(update: Update, context: CallbackContext):
-    chat_id = update.effective_chat.id
-    text_command = update.message.text
-    if text_command == 'help':
-        response = get_bot_description()
-        context.bot.send_message(chat_id=chat_id, text=response)
-    elif text_command == 'users':
-        users(update, context)
-    if text_command == 'book':
-        book_tmrw(update, context)
-    elif text_command == 'free':
-        free_tmrw(update, context)
-    elif text_command == 'status':
-        status_tomorrow(update, context)
+# def basic_button(update: Update, context: CallbackContext):
+#     chat_id = update.effective_chat.id
+#     text_command = update.message.text
+#     if text_command == '/help':
+#         response = get_bot_description()
+#         context.bot.send_message(chat_id=chat_id, text=response)
+#     elif text_command == '/users':
+#         users(update, context)
+#     if text_command == '/book':
+#         book_tmrw(update, context)
+#     elif text_command == '/free':
+#         free_tmrw(update, context)
+#     elif text_command == '/status':
+#         status_tomorrow(update, context)
 
 
 def generate_button(data):
@@ -75,14 +73,19 @@ def generate_button(data):
     # reply_markup = InlineKeyboardMarkup(keyboard)
     # return reply_markup
     if data == 'free':
-        basic_buttons = [['users', 'help'], ['book', 'status']]
-    elif data == 'book':
-        basic_buttons = [['users', 'help'], ['free', 'status']]
-
+        basic_buttons = [['/users', '/help'], ['/book_tmrw', '/status_tmrw']]
+    else:
+        basic_buttons = [['/users', '/help'], ['/free_tmrw', '/status_tmrw']]
     return ReplyKeyboardMarkup(basic_buttons)
 
 
 # bot commands #
+
+
+def help_command(update: Update, context: CallbackContext):
+    chat_id = update.effective_chat.id
+    context.bot.send_message(chat_id=chat_id, text=get_bot_description())
+
 
 def start(update: Update, context: CallbackContext):
     chat_id = update.effective_chat.id
@@ -102,13 +105,12 @@ def start(update: Update, context: CallbackContext):
         waiting_list = db.get_collection('request_list')
         user_waiting = waiting_list.find_one({'user_id': chat_id})
         if not user_with_parks and not user_waiting:
-            #reply_markup = ReplyKeyboardMarkup(basic_buttons)
+            # reply_markup = ReplyKeyboardMarkup(basic_buttons)
             context.bot.send_message(chat_id=chat_id, text=f"🚗️ Welcome {user['name']}! 🚗️",
-                                 reply_markup=generate_button('free'))
+                                     reply_markup=generate_button('free'))
         else:
             context.bot.send_message(chat_id=chat_id, text=f"🚗️ Welcome {user['name']}! 🚗️",
-                                 reply_markup=generate_button('book'))
-
+                                     reply_markup=generate_button('book'))
 
 
 def users(update: Update, context: CallbackContext):
@@ -271,7 +273,6 @@ def creat_users():
                           upsert=True)
 
 
-
 def create_final_list():
     db = client.get_database('parking_db')
     employees = db.get_collection('employees')
@@ -308,8 +309,11 @@ if __name__ == '__main__':
                                                         datetime.datetime.now().month,
                                                         datetime.datetime.now().day, 22, 59, 0))
 
-    echo_handler = MessageHandler(Filters.text, basic_button)
-    dispatcher.add_handler(echo_handler)
+    # echo_handler = MessageHandler(Filters.text, basic_button)
+    # dispatcher.add_handler(echo_handler)
+
+    help_handler = CommandHandler('help', help_command)
+    dispatcher.add_handler(help_handler)
 
     start_handler = CommandHandler('start', start, )
     dispatcher.add_handler(start_handler)
